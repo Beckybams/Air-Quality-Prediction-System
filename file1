@@ -1,0 +1,90 @@
+# Air-Quality-Prediction-System using Synthetic Data
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+
+# -----------------------------
+# 1. Generate Synthetic Dataset
+# -----------------------------
+
+np.random.seed(42)
+n_samples = 1000
+
+data = pd.DataFrame({
+    "temperature": np.random.uniform(15, 40, n_samples),   # °C
+    "humidity": np.random.uniform(20, 90, n_samples),      # %
+    "wind_speed": np.random.uniform(0, 15, n_samples),     # m/s
+    "traffic_density": np.random.uniform(10, 100, n_samples),
+    "industrial_activity": np.random.uniform(5, 50, n_samples)
+})
+
+# Create synthetic AQI target (Air Quality Index)
+data["AQI"] = (
+    0.5 * data["traffic_density"] +
+    0.8 * data["industrial_activity"] -
+    0.3 * data["wind_speed"] +
+    0.2 * data["humidity"] +
+    np.random.normal(0, 10, n_samples)
+)
+
+# -----------------------------
+# 2. Prepare Data
+# -----------------------------
+
+X = data.drop("AQI", axis=1)
+y = data["AQI"]
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+# -----------------------------
+# 3. Train Model
+# -----------------------------
+
+model = RandomForestRegressor(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
+
+# -----------------------------
+# 4. Evaluate Model
+# -----------------------------
+
+y_pred = model.predict(X_test)
+
+mae = mean_absolute_error(y_test, y_pred)
+rmse = np.sqrt(mean_squared_error(y_test, y_pred))
+r2 = r2_score(y_test, y_pred)
+
+print("Model Performance:")
+print("MAE:", round(mae, 2))
+print("RMSE:", round(rmse, 2))
+print("R2 Score:", round(r2, 2))
+
+# -----------------------------
+# 5. Feature Importance
+# -----------------------------
+
+importance = pd.Series(model.feature_importances_, index=X.columns)
+importance.sort_values().plot(kind='barh')
+plt.title("Feature Importance")
+plt.xlabel("Importance Score")
+plt.show()
+
+# -----------------------------
+# 6. Predict New Data
+# -----------------------------
+
+new_sample = pd.DataFrame({
+    "temperature": [30],
+    "humidity": [60],
+    "wind_speed": [5],
+    "traffic_density": [70],
+    "industrial_activity": [30]
+})
+
+predicted_aqi = model.predict(new_sample)
+print("Predicted AQI for new sample:", round(predicted_aqi[0], 2))
